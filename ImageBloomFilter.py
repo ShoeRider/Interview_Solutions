@@ -93,57 +93,53 @@ if True:
     list[3] = '0b1'
     print(list)
 
-class _BloomFilter:
-    def __init__(self,HashMap_Length,Hashes,Set_Length):
+class DB():
+    def __init__(self,Location):
+        self.Location = Location
+    def Add(self):
+        return 0
+    def Remove(self):
+        return 0
+    def Check(self):
+        return 0
+
+#TODO:
+class _BloomFilter():
+    def __init__(self,**kwargs):
+        #(self,Location,HashMap_Length,Hashes,Set_Length,ExpectedEntries=1000,FalsePositiveRate=0.01,EReference=10)
+        #DataDepth,DataKeyWords- in Order to create HashGuides
+        RuntimeParameters = {
+                    'Type'             : type(1),
+                    'ExpectedEntries'  : 1000,
+                    'FalsePositiveRate': 0.01,
+                    'Location'         : "",
+                    'HashGuides'       : ["int"],
+                    'HashBitLocations' : self.HashBitLocations,
+                    }
+
+        RuntimeParameters.update(kwargs)
+        #print(RuntimeParameters)
+
         self.StoredElements = {}
+        self.Type              = RuntimeParameters["Type"]
+        self.ExpectedEntries   = RuntimeParameters["ExpectedEntries"]
+        self.FalsePositiveRate = RuntimeParameters["FalsePositiveRate"]
+        self.EnteredElements   = 0
+        self.FalsePositives    = 0
 
-
-
-#class String_BloomFilter(_BloomFilter):
-#    def __init__(self):
-
-
-
-class _ImageBloomFilter():
-        #k= (m/n)*ln2
-        #(ax+b) mod 17
-    def __init__(self,Location,HashMap_Length,Hashes,Set_Length,ExpectedEntries=1000,FalsePositiveRate=0.01,EReference=10):
-        self.ExpectedEntries = ExpectedEntries
-        self.EnteredElements = 0
-        self.FalsePositives = 0
-
-        #self.FalsePositiveList = []
-        self.LastHundred    = []
-
-        self.StoredElements = {}
-        self.HashMap_Length = HashMap_Length
-        self.HashMap        = bitstring.BitArray(self.HashMap_Length)
-
-        self.Hashes         = Hashes
-        #EReference - Expenential reference ~number of referenced points per image
-        self._EReference    = EReference
-
-        self.RGB_Primes     = {'R' : 101,'G' : 151,'B' : 191,'Gray' : 199}
-
-
-        #The following Creates a set of dictionaries for each different Hash Function:
-        #For RGB Images:
-        #  HASH(Integer) = 'A'*Red + 'B'*Green + ''
-        #For GrayScale Images:
-        #  HASH(Integer) = 'A'*GrayScaleValue + 'B'
-        self.HashMap_To_HashKey = []
-        for X in range(self.Hashes):
-            self.HashMap_To_HashKey.append(random.randint(1,sys.maxsize))
+        self._ConfigureBloomFilterValues(self.ExpectedEntries,self.FalsePositiveRate)
 
         self.HashGuides = {}
         for X in range(self.Hashes):
-            R = random.randint(1,sys.maxsize) #Red
-            G = random.randint(1,sys.maxsize) #Green
-            B = random.randint(1,sys.maxsize) #Blue
-            I = random.randint(1,sys.maxsize) #Intercept
+            self.HashGuides[X] = {}
+            for HashGuide in kwargs['HashGuides']:
+                self.HashGuides[X][HashGuide] = random.randint(1,sys.maxsize)
 
-            self.HashGuides[X] = {'R':R, 'G':G, 'B':B, 'I':I}
-        self.Print_Description()
+        self.HashBitLocations   = RuntimeParameters["HashBitLocations"]
+
+        self.HashMap_To_HashKey = []
+        for X in range(self.Hashes):
+            self.HashMap_To_HashKey.append(random.randint(1,sys.maxsize))
 
     def Print_Description(self):
         print("HashMap_Length:"+str(self.HashMap_Length))
@@ -162,13 +158,20 @@ class _ImageBloomFilter():
             if X:
                 BitsSet += 1
         print("Bits Set: "+str(BitsSet)+"/"+str(self.HashMap_Length))
-        return 0
-    #SuggestBloomFilterValues Takes:
+
+    def HashBitLocations(self,Item):
+        print("Please Redirect 'HashBitLocations' in kwargs.")
+        print("This function will be used on any newly added item to get the Bit_Locations")
+        #self.FalsePositiveList = []
+
+
+    #_ConfigureBloomFilterValues Takes:
     #(ExpectedEntries:int,FalsePositive,Print=False)
     #Returns list of Suggested:
+
     # [0] = Suggested Size
     # [1] = Suggested HashFunctions
-    def SuggestBloomFilterValues(self,ExpectedEntries,FalsePositive,Print=True):
+    def _ConfigureBloomFilterValues(self,ExpectedEntries,FalsePositive,Print=False):
         #ExpectedEntries - number of items we plan to put in the list
         #FalsePositive - probability we will accept/Desire
         Suggested_HashMap_Size  = ((ExpectedEntries*np.log(FalsePositive))/(np.log(2)**2))
@@ -182,53 +185,10 @@ class _ImageBloomFilter():
 
         if (int(abs(Suggested_HashFunctions)) < 1):
             Suggested_HashFunctions = 1
-        return [int(abs(Suggested_HashMap_Size)),int(abs(Suggested_HashFunctions))]
-
-    def Reset_BitArray(self,Message="User Initiated"):
-        self.HashMap         = bitstring.BitArray(HashMap_Length)
-        self.ExpectedEntries += ExpectedEntries * 0.1
-        self.FalsePositiveRate = self.FalsePositiveRate
-        SuggestedList = self.SuggestBloomFilterValues(self.ExpectedEntries,self.FalsePositiveRate)
-
-        print("Reset Bit Array Started by:"+Message)
-        #TODO:
-        # - Calculate New Optimum/Random Numbers
-        # - reCalculate Image Hashes
-        #
-        return 0
-
-    def StartUp_BitArray(self):
-        #TODO: Read Random Preferences and preform 'setup'.
-        return 0
-
-
-    def Find_ArrayIndexes(self,Array):
-        ArrayIndexes = [0] * self.Hashes
-        return 0
-    def Add_ElementsInStepSize(self,Step,Array):
-        Sum = 0
-        Step_From = int(self.Element_Step*Step)
-        Step_To   = int(self.Element_Step*(Step+1))
-
-        #print("\t",Step," ",Step_From,":",Step_To-1)
-        for X in range(Step_From,Step_To,1):
-            #print("\t Gathering from :",X)
-            #print("\t  the Value: ",Array[X])
-            Sum += (Array[X])
-        return Sum/self.Gradient
-
-    def Get_GS_BitLocations(self,GS_Array):
-        GS_Locations = []
-        #print("self.HashGuides",self.HashGuides)
-        GS_Sum = sum([element for element in GS_Array])
-        #RGB_MatrixSum = sum(Col for Col in sum([Row for Row in GS_Matrix]))
-        ArrayIndexes = [0] * self.Hashes
-
-        for Hash in self.HashGuides:
-            #SIF = _SlopeInterceptForm
-            SIF = self.HashGuides[Hash]
-            GS_Locations.append(int(SIF["G"] * GS_Sum + SIF["I"])% self.HashMap_Length)
-        return GS_Locations
+        self.HashMap_Length = int(abs(Suggested_HashMap_Size))
+        self.HashMap        = bitstring.BitArray(self.HashMap_Length)
+        self.Hashes         = int(abs(Suggested_HashFunctions))
+        #return [int(abs(Suggested_HashMap_Size)),int(abs(Suggested_HashFunctions))]
 
     def Add_BitLocations(self,Bit_Locations):
         for Index in range(len(Bit_Locations)):
@@ -252,42 +212,21 @@ class _ImageBloomFilter():
     # Sum/HashValue
     def BitLocations_To_Hash(self,BitLocations):
         Sum = 0
+        print(len(BitLocations))
         for Index in range(len(BitLocations)):
             Sum += self.HashMap_To_HashKey[Index]*BitLocations[Index]
         return Sum
-    #Takes:
-    # (ImageLocation='Location')
-    # ()
-    def Add_GrayScaleImage(self, **kwargs):
-
-        if "GS_Array" not in kwargs:
-            kwargs["GS_Array"] = Image(kwargs["FileLocation"])._GetGS_NPS(self._EReference)
-
-        #GS_Array,Location
-        GrayScale_List = self.Check_GrayScaleImage(kwargs["GS_Array"],kwargs["FileLocation"])
-        if (not GrayScale_List[0]):
-            self.StoredElements[GrayScale_List[1]] = []
-        else:
-            self.FalsePositives+=1
-
-        self.StoredElements[GrayScale_List[1]].append(kwargs["FileLocation"])
-        self.EnteredElements+=1
-        return GrayScale_List
-
     #Returns
     # [0] = Entry Exists
     # [1] = UniqueHash
-    # [2] = FalsePositive
-    # [3] = BitLocations
-    def Check_GrayScaleImage(self,GS_Array,Location):
+    # [2] = BitLocations
+    def Check_Item(self,Item):
         Exists        = 0
-        BitLocations  = self.Get_GS_BitLocations(GS_Array)
-
+        BitLocations  = self.HashBitLocations(Item)
         UniqueHash    = self.BitLocations_To_Hash(BitLocations)
         BitHashExists = self.Check_BitLocations(BitLocations)
 
         self.Add_BitLocations(BitLocations)
-        FalsePositive = None
 
         if BitHashExists:
             Hash = self.BitLocations_To_Hash(BitLocations)
@@ -299,86 +238,147 @@ class _ImageBloomFilter():
                 for File in FileList:
                     #test2Images
                     #if test2Images: FalsePositive = True
-                    FalsePositive = True
+
+                    self.FalsePositives+=1
                     Exists = 1
 
         # Image definately does not exist Continue to add image
-        return (Exists,UniqueHash,FalsePositive,BitLocations)
-    def Add_GS_ImageLocation(self,Location):
-        Test_Image = Image(Location)
+        return (Exists,UniqueHash,BitLocations)
 
-        Test_BF.Add_GrayScaleImage(Test_Image._GetGS_NPS(EReference))
+    #Returns
+    # [0] = Entry added
+    def Add(self,Item):
+        if(type(Item) != self.Type):
+            return False
+
+        GrayScale_List = self.Check_Item(Item)
+        if (not GrayScale_List[0]):
+            self.StoredElements[GrayScale_List[1]] = []
+
+        self.StoredElements[GrayScale_List[1]].append(Item)
+        self.EnteredElements+=1
+        return not GrayScale_List[0]
+
+def V2():
+            Reference_List  = [x for x in range(1000)]
+            RandomNumber = []
+            for X in range(1000-1,-1,-1):
+                Index = random.randint(0,X)
+                Value = Reference_List.pop(Index)
+                RandomNumber.append(Value)
+
+            self.CharacterValues = {}
+            for Index,Character in enumerate(string.printable):
+                print(RandomNumber[Index])
+                self.CharacterValues[Character] = RandomNumber[Index]
+
+
+import string
+class String_BF(_BloomFilter,object):
+    def __init__(self,*args, **kwargs):
+        kwargs["Dimentions"]       = 1
+        kwargs["Type"]             = type("String")
+        kwargs["HashGuides"]       = string.printable
+        kwargs["HashBitLocations"] = self.String_HashBitLocations
+        #super(Image_BF, self).__init__(*args,**kwargs)
+        super(String_BF, self).__init__(**kwargs)
+
+    def String_HashBitLocations(self,String):
+        BitLocations = []
+
+        for Hash in self.HashGuides:
+            Sum = 0
+            for Set in self.HashGuides[Hash]:
+                for Character in String:
+                    #print(self.HashGuides[Hash][Character])
+                    Sum += self.HashGuides[Hash][Character]
+            BitLocations.append(Sum%self.HashMap_Length)
+        #EReference - Expenential reference ~number of referenced points per image
+        return BitLocations
+
+if(True):
+    print("String_BF Tests")
+    TestBF = String_BF()
+    print(TestBF.Add("SomeThing"))
+    print(TestBF.Add("SomeThing NEw"))
+
+
+class _RGB_Image(_BloomFilter,object):
+    def __init__(self,*args, **kwargs):
+        kwargs["Dimentions"]       = 2
+        kwargs["Type"]             = type(0)
+        kwargs["HashGuides"]       = ["R","G","B","Intercept"]
+        kwargs["HashBitLocations"] = self.Matrix_Hash
+        #super(Image_BF, self).__init__(*args,**kwargs)
+        super(Image_BF, self).__init__(**kwargs)
+
+    def Matrix_Hash(self,Item):
+        BitLocations = []
+
+        for Hash in self.HashGuides:
+            Sum = 0
+            for Set in self.HashGuides[Hash]:
+                for Character in String:
+                    #print(self.HashGuides[Hash][Character])
+                    Sum += self.HashGuides[Hash][Character]
+            BitLocations.append(Sum%self.HashMap_Length)
+        #EReference - Expenential reference ~number of referenced points per image
+        return BitLocations
+
+class RGB_Image_BF(_BloomFilter,object):
+    def __init__(self,*args, **kwargs):
+        kwargs["Dimentions"]       = 2
+        kwargs["Type"]             = type(0)
+        kwargs["HashGuides"]       = ["R","G","B","Intercept"]
+        kwargs["HashBitLocations"] = self.RGB_Hash
+        #super(Image_BF, self).__init__(*args,**kwargs)
+        super(Image_BF, self).__init__(**kwargs)
+
+    def RGB_Hash(self,Item):
+        print("it worked")
+        #EReference - Expenential reference ~number of referenced points per image
         return 0
 
+class _MD_BloomFilter(object):
+    def __init__(self,*args, **kwargs):
+        RuntimeParameters = {
+                    'ExpectedEntries'  : 1000,
+                    'FalsePositiveRate': 0.01,
+                    'Location'         : "",
+                    'HashGuides'       : ["int"],
+                    'HashBitLocations' : self.HashBitLocations,
+                    }
 
+        RuntimeParameters.update(kwargs)
 
+        self.Sources = {}
+        for Source in RuntimeParameters['Sources']:
+            self.Sources[Source]=_BloomFilter
 
-
-#SuggestBloomFilterValues Takes:
-#(ExpectedEntries:int,FalsePositive,Print=False)
-#Returns list of Suggested:
-# [0] = Suggested Size
-# [1] = Suggested HashFunctions
-def SuggestBloomFilterValues(ExpectedEntries,FalsePositive,Print=True):
-    #ExpectedEntries - number of items we plan to put in the list
-    #FalsePositive - probability we will accept/Desire
-    Suggested_HashMap_Size  = ((ExpectedEntries*np.log(FalsePositive))/(np.log(2)**2))
-    Suggested_HashFunctions = abs(Suggested_HashMap_Size/ExpectedEntries)*np.log(2)
-    RealChance              = math.exp((Suggested_HashMap_Size*(math.log(2)**2))/ExpectedEntries)
-
-    if (Print):
-        print("Suggested_HashMap_Size: ",abs(Suggested_HashMap_Size))
-        print("Suggested # of Hashes:",Suggested_HashFunctions)
-        print("The Real Chance:",RealChance)
-
-    if (int(abs(Suggested_HashFunctions)) < 1):
-        Suggested_HashFunctions = 1
-    return [int(abs(Suggested_HashMap_Size)),int(abs(Suggested_HashFunctions))]
-
-def Create_SuggestedBloomFilter(ExpectedEntries,FalsePositive,Array_Length,EReference=4):
-    Size_HFunctions = SuggestBloomFilterValues(ExpectedEntries,FalsePositive)
-    return _ImageBloomFilter("",Size_HFunctions[0],Size_HFunctions[1],Array_Length,ExpectedEntries=ExpectedEntries,EReference=EReference)
-
-
-
-
-if True:
-    #EReference - Exponential Reference
-    EReference = 4
-    Test_BF = Create_SuggestedBloomFilter(50,.01,EReference**2)
-    Test_BF.Print_Description()
-    PictureRange = (500,550)
-
-    for X in range(PictureRange[0],PictureRange[1],1):
-        #print('VideoSet0//frame'+str(X)+'.jpg')
-
-        #Test_Image = Image('VideoSet0//frame'+str(X)+'.png')
-        #print(Test_BF.Add_GrayScaleImage(GS_Array = Test_Image._GetGS_NPS(EReference),FileLocation='VideoSet0//frame'+str(X)+'.png'))
-
-        print(Test_BF.Add_GrayScaleImage(FileLocation='VideoSet0//frame'+str(X)+'.png'))
-    Test_BF.CheckHealth()
-
+    def _Declare_RGB(self):
+        Parameters={}
+        Parameters["Dimentions"]       = 2
+        Parameters["Type"]             = type(0)
+        Parameters["HashGuides"]       = ["R","G","B","Intercept"]
+        Parameters["HashBitLocations"] = self.RGB_Hash
 if(False):
-    GS_Matrix = cv2.imread('25.jpg',0)
-    print(GS_Matrix)
-    Array_Sum = sum(Col for Col in sum([Row for Row in GS_Matrix]))
-    #Array_Tottal = sum([Element for Element in GS_Matrix])
-    print(Array_Sum)
+    print("_MD_BloomFilter Tests")
 
-if False:
-    EReference = 1
-    Test_BF = Create_SuggestedBloomFilter(10,.01,EReference**2)
-    Test_Image_0 = Image('25.jpg')
-    Test_Image_01 = Image('166.jpg')
+class Full_Image_BF(_BloomFilter,object):
+    def __init__(self,*args, **kwargs):
+        kwargs["Dimentions"]       = 2
+        kwargs["Type"]             = type(0)
+        kwargs["HashGuides"]       = ["R","G","B","Intercept"]
+        kwargs["HashBitLocations"] = self.RGB_Hash
+        #super(Image_BF, self).__init__(*args,**kwargs)
+        super(Image_BF, self).__init__(**kwargs)
 
-    #print(Test_BF.HashMap)
-    print(Test_BF.Add_GrayScaleImage(Test_Image_0._GetGS_NPS(EReference),"Location"))
-    #print(Test_BF.HashMap)
-    #ignore = input("l")
-    print(Test_BF.Add_GrayScaleImage(Test_Image_01._GetGS_NPS(EReference),"Location"))
-    #print(Test_BF.HashMap)
-    #input()
-    print(Test_BF.Add_GrayScaleImage(Test_Image_0._GetGS_NPS(EReference),"Location"))
-    #print(Test_BF.HashMap)
-    #input()
-    #Array_BloomFilter(BF_Length,Hashes,Array_Length)
+    def RGB_Hash(self,Item):
+        print("it worked")
+        #EReference - Expenential reference ~number of referenced points per image
+        return 0
+
+class Video_MD_BloomFilter(_MD_BloomFilter):
+    def __init__(self,Location,*args, **kwargs):
+
+        super(Video_MD_BloomFilter, self).__init__(,*args, **kwargs)
