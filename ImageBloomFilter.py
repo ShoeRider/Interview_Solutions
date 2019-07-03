@@ -13,6 +13,72 @@ random.seed(0)
 # 1. Ratio Points
 # 2. Quadtrees
 
+
+
+
+class _Image():
+    def __init__(self,Path,QuickSum=False,ColorDimensions=1):
+        if (ColorDimensions==1):
+            self.ColorDimensions = ColorDimensions
+            self._Matrix         = cv2.imread(Path,0)
+            self.Get_HashSample  = self._GetRGB_NPS
+
+        else if (ColorDimensions==3):
+            self.ColorDimensions = ColorDimensions
+            self._Matrix         = cv2.imread(Path,1)
+            self.Get_HashSample  = self._GetGS_NPS
+
+        self.Height      = len(self.GS_Matrix)
+        self.Length      = len(self.GS_Matrix[0])
+        self.Ratio       = self.Height/self.Length
+        #BitColorDepth
+        #HashFunction/Method
+
+
+    #TODO: IMPLEMENT CV2 Quick Matrix compairison
+    #Returns :
+    # 0 (False): Images are different
+    # 1 (True): Images are the same
+    def Equivalent(self,Image2):
+        if (Image2.Height != self.Height or Image2.Length != self.Length):
+            return 0
+        AbsoluteDistance = 0
+        for X in range(self.Height):
+            for Y in range(self.Length):
+                if(self.GS_Matrix[X][Y] != Image2.GS_Matrix[X][Y]):
+                    return 0
+        return 1
+
+    def _Print_Dimensions(self):
+        print("Height: "+str(self.Height))
+        print("Length: "+str(self.Length))
+        print("H/L Ratio: "+str(self.Ratio))
+
+    def _Get_RegionSum(self,Height,L,R):
+        return 0
+    #Get RED GREEN BLUE Number Points Simple
+    #Returns List with Dimentions: [self.Height][self.Length][3]
+    def _GetRGB_NPS(self,N):
+        List = []
+        _HStepDistance = int(self.Height/(N+1))
+        _LStepDistance = int(self.Length/(N+1))
+        for X in range(N):
+            for Y in range(N):
+                List.append(self.RGB_Matrix[_HStepDistance*X][_LStepDistance*Y])
+        return List
+
+    #Get Gray Scale Number Points Simple
+    def _GetGS_NPS(self,N):
+        List = []
+        _HStepDistance = int(self.Height/(N+1))
+        _LStepDistance = int(self.Length/(N+1))
+        for X in range(N):
+            for Y in range(N):
+                List.append(self.GS_Matrix[_HStepDistance*X][_LStepDistance*Y])
+        return List
+    def Print(self):
+        print(self.GS_Matrix)_
+
 #img = cv2.imread(,1)
 
 if False:
