@@ -8,63 +8,6 @@ import random
 random.seed(0)
 
 
-# Image Hash Requirements:
-#Needs to work with:
-#   different image sizes,
-#   should be
-class Image():
-    def __init__(self,Path,QuickSum=False):
-        self.GS_Matrix   = cv2.imread(Path,0)
-        self.RGB_Matrix  = cv2.imread(Path,1)
-        self.Height      = len(self.GS_Matrix)
-        self.Length      = len(self.GS_Matrix[0])
-        self.Ratio       = self.Height/self.Length
-        #BitColorDepth
-        #HashFunction/Method
-
-
-    #TODO: IMPLEMENT CV2 Quick Matrix compairison
-    #Returns :
-    # 0 (False): Images are different
-    # 1 (True): Images are the same
-    def SameImage(self,Image2,GrayScale=True):
-        if (Image2.Height != self.Height or Image2.Length != self.Length):
-            return 0
-        AbsoluteDistance = 0
-        for X in range(self.Height):
-            for Y in range(self.Length):
-                if(self.GS_Matrix[X][Y] != Image2.GS_Matrix[X][Y]):
-                    return 0
-        return 1
-
-    def _Print_Dimensions(self):
-        print("Height: "+str(self.Height))
-        print("Length: "+str(self.Length))
-        print("H/L Ratio: "+str(self.Ratio))
-
-    def _Get_RegionSum(self,Height,L,R):
-        return 0
-
-    #Get RED GREEN BLUE Number Points Simple
-    #Returns List with Dimentions: [self.Height][self.Length][3]
-    def _GetRGB_NPS(self,N):
-        List = []
-        _HStepDistance = int(self.Height/(N+1))
-        _LStepDistance = int(self.Length/(N+1))
-        for X in range(N):
-            for Y in range(N):
-                List.append(self.RGB_Matrix[_HStepDistance*X][_LStepDistance*Y])
-        return List
-
-    #Get Gray Scale Number Points Simple
-    def _GetGS_NPS(self,N):
-        List = []
-        _HStepDistance = int(self.Height/(N+1))
-        _LStepDistance = int(self.Length/(N+1))
-        for X in range(N):
-            for Y in range(N):
-                List.append(self.GS_Matrix[_HStepDistance*X][_LStepDistance*Y])
-        return List
 
 #TODO Hash by:
 # 1. Ratio Points
@@ -83,7 +26,7 @@ if False:
 
 if True:
     Cat_Image = Image('25.jpg')
-    print(Cat_Image.SameImage(Image('25.jpg')))
+    print(Cat_Image.Equivalent(Image('25.jpg')))
 
 
 if True:
@@ -104,17 +47,20 @@ class DB():
         return 0
 
 #TODO:
+#_BloomFilter works with classes defined with:
+# Equivalent(self,Item)
+# Instantiate(self,Location)
+# Store(self,Location)
 class _BloomFilter():
     def __init__(self,**kwargs):
         #(self,Location,HashMap_Length,Hashes,Set_Length,ExpectedEntries=1000,FalsePositiveRate=0.01,EReference=10)
         #DataDepth,DataKeyWords- in Order to create HashGuides
         RuntimeParameters = {
-                    'Type'             : type(1),
+                    'Type'             : type(1), #(int)
                     'ExpectedEntries'  : 1000,
                     'FalsePositiveRate': 0.01,
                     'Location'         : "",
                     'HashGuides'       : ["int"],
-                    'HashBitLocations' : self.HashBitLocations,
                     }
 
         RuntimeParameters.update(kwargs)
@@ -127,6 +73,7 @@ class _BloomFilter():
         self.EnteredElements   = 0
         self.FalsePositives    = 0
 
+
         self._ConfigureBloomFilterValues(self.ExpectedEntries,self.FalsePositiveRate)
 
         self.HashGuides = {}
@@ -134,8 +81,6 @@ class _BloomFilter():
             self.HashGuides[X] = {}
             for HashGuide in kwargs['HashGuides']:
                 self.HashGuides[X][HashGuide] = random.randint(1,sys.maxsize)
-
-        self.HashBitLocations   = RuntimeParameters["HashBitLocations"]
 
         self.HashMap_To_HashKey = []
         for X in range(self.Hashes):
@@ -163,6 +108,12 @@ class _BloomFilter():
         print("Please Redirect 'HashBitLocations' in kwargs.")
         print("This function will be used on any newly added item to get the Bit_Locations")
         #self.FalsePositiveList = []
+    def Print_Item(self,Item):
+        print(Item)
+
+    def PrintAllItems(self):
+        for Keys in self.StoredElements.keys():
+            self.Print_Item(self.StoredElements[Keys])
 
 
     #_ConfigureBloomFilterValues Takes:
@@ -216,61 +167,112 @@ class _BloomFilter():
         for Index in range(len(BitLocations)):
             Sum += self.HashMap_To_HashKey[Index]*BitLocations[Index]
         return Sum
-    #Returns
-    # [0] = Entry Exists
-    # [1] = UniqueHash
-    # [2] = BitLocations
-    def Check_Item(self,Item):
-        Exists        = 0
+
+
+    #Returns if the Item was added
+    def Add(self,Item):
+        #if(type(Item) != self.Type):
+        #    print("Given"+str(type(Item))+" Expecting:"+str(self.Type))
+        #    return False
+        AddItem    = True
+        CreateList = True
         BitLocations  = self.HashBitLocations(Item)
         UniqueHash    = self.BitLocations_To_Hash(BitLocations)
         BitHashExists = self.Check_BitLocations(BitLocations)
 
-        self.Add_BitLocations(BitLocations)
 
         if BitHashExists:
             Hash = self.BitLocations_To_Hash(BitLocations)
             # Image might exist, need to further check
             HashExists = self.Hash_Exists(Hash)
+            print(HashExists)
             if (HashExists):
+                CreateList = False
                 #Need to further investigate to ensure no missed unique image
-                FileList = self.StoredElements[Hash]
-                for File in FileList:
+                ObjectList = self.StoredElements[Hash]
+                for Object in ObjectList:
                     #test2Images
-                    #if test2Images: FalsePositive = True
-
+                    #Object.FileLocation
+                    if Object.Equivalent(Item):
+                        AddItem = False
                     self.FalsePositives+=1
-                    Exists = 1
 
-        # Image definately does not exist Continue to add image
-        return (Exists,UniqueHash,BitLocations)
 
-    #Returns
-    # [0] = Entry added
-    def Add(self,Item):
-        if(type(Item) != self.Type):
-            return False
+        if (CreateList):
+            self.StoredElements[UniqueHash] = []
+        if (AddItem):
+            self.Add_BitLocations(BitLocations)
+            self.StoredElements[UniqueHash].append(Item)
+            self.EnteredElements+=1
 
-        GrayScale_List = self.Check_Item(Item)
-        if (not GrayScale_List[0]):
-            self.StoredElements[GrayScale_List[1]] = []
 
-        self.StoredElements[GrayScale_List[1]].append(Item)
-        self.EnteredElements+=1
-        return not GrayScale_List[0]
+        return AddItem
 
-def V2():
-            Reference_List  = [x for x in range(1000)]
-            RandomNumber = []
-            for X in range(1000-1,-1,-1):
-                Index = random.randint(0,X)
-                Value = Reference_List.pop(Index)
-                RandomNumber.append(Value)
 
-            self.CharacterValues = {}
-            for Index,Character in enumerate(string.printable):
-                print(RandomNumber[Index])
-                self.CharacterValues[Character] = RandomNumber[Index]
+
+
+Test = {}
+Test[str([0,1])]=10
+print(Test)
+
+Test[(1,1)]=11
+
+class _KMer():
+    def __init__(self):
+        self.KMer = 0
+
+class Matrix_KMer(_KMer,object):
+    def __init__(self):
+        self.KMer = 0
+
+from bs4 import BeautifulSoup
+class _String():
+    def __init__(self,String,**kwargs):
+        self.String = str(String)
+        print(kwargs,("nGrams" in kwargs))
+
+        if("nGrams" in kwargs):
+            self.nGrams = kwargs["nGrams"]
+            self.Configure_nGrams()
+        if("HTML" in kwargs):
+            self.BS = BeautifulSoup(self.String, "html.parser")
+
+
+    def _BS_Find(self):
+        JS_Discription = self.BS.find('yt-formatted-string',attrs={'class':'content style-scope ytd-video-secondary-info-renderer'})
+    def Configure_nGrams(self):
+        self.StringList   = self.String.split(" ")
+        self.nGramSequence = {}
+        k = self.nGrams
+
+        for OffSet in range(0,len(self.StringList)-(k),1):
+            SubSequence = str(self.StringList[OffSet:OffSet + k])
+            if (SubSequence not in self.nGramSequence):
+                self.nGramSequence[SubSequence] = []
+
+            self.nGramSequence[SubSequence].append(OffSet)
+        return 0
+
+    def Find_JaccardSimilarityCoefficient(self,String_1,**kwargs):
+        if(type(String_1)==type(type(str()))):
+            Temp = _String(String_1,nGrams=self.nGrams)
+        if("nGrams" in kwargs):
+            return 0
+        OverLappingElements = 0
+        UniqueElements = len(Kmer_0)
+
+        for element_1 in Kmer_1:
+            if element_1 in Kmer_0:
+                OverLappingElements += 1
+            else:
+                UniqueElements += 1
+
+        JaccardIndex = OverLappingElements/UniqueElements
+        return JaccardIndex
+
+temp = _String("Walkin the dog at the park",nGrams=3)
+print(temp)
+
 
 
 import string
@@ -279,9 +281,9 @@ class String_BF(_BloomFilter,object):
         kwargs["Dimentions"]       = 1
         kwargs["Type"]             = type("String")
         kwargs["HashGuides"]       = string.printable
-        kwargs["HashBitLocations"] = self.String_HashBitLocations
         #super(Image_BF, self).__init__(*args,**kwargs)
         super(String_BF, self).__init__(**kwargs)
+        self.HashBitLocations = self.String_HashBitLocations
 
     def String_HashBitLocations(self,String):
         BitLocations = []
@@ -301,18 +303,71 @@ if(True):
     TestBF = String_BF()
     print(TestBF.Add("SomeThing"))
     print(TestBF.Add("SomeThing NEw"))
+    TestBF.PrintAllItems()
 
 
-class _RGB_Image(_BloomFilter,object):
+
+
+
+
+
+class _MD_BloomFilter(object):
+    def __init__(self,*args, **kwargs):
+        RuntimeParameters = {
+                    'ExpectedEntries'  : 1000,
+                    'FalsePositiveRate': 0.01,
+                    }
+
+        RuntimeParameters.update(kwargs)
+        Title     = String_BF(RuntimeParameters)
+        #RGB_Image = RGB_Image(RuntimeParameters)
+
+        self.Sources = {}
+    #    for Source in (Title,RGB_Image):
+    def Exists(self,Item):
+        return 0
+    def Add(self,Item):
+        return 0
+
+    def _Declare_RGB(self):
+        Parameters={}
+        Parameters["Dimentions"]       = 2
+        Parameters["Type"]             = type(0)
+        Parameters["HashGuides"]       = ["R","G","B","Intercept"]
+        Parameters["HashBitLocations"] = self.RGB_Hash
+
+
+
+class GS_Image(_MD_BloomFilter,object):
+    def __init__(self,*args, **kwargs):
+
+        kwargs["Dimentions"]       = 2
+        kwargs["Type"]             = type(0)
+        kwargs["HashGuides"]       = range(2)
+        #super(Image_BF, self).__init__(*args,**kwargs)
+        super(GS_Image, self).__init__(**kwargs)
+        self.NxN_Pixels            = 10
+        self.HashBitLocations = self.GS_Hash
+
+
+    def GS_Hash(self,Item):
+        BitLocations = []
+        Pixels = Item._GetGS_NPS(self.NxN_Pixels)
+        print("Pixels NxN_Pixels")
+        print(Pixels)
+        #EReference - Expenential reference ~number of referenced points per image
+        return BitLocations
+
+class RGB_Image(_BloomFilter,object):
     def __init__(self,*args, **kwargs):
         kwargs["Dimentions"]       = 2
         kwargs["Type"]             = type(0)
-        kwargs["HashGuides"]       = ["R","G","B","Intercept"]
-        kwargs["HashBitLocations"] = self.Matrix_Hash
+        kwargs["HashGuides"]       = range(4)
+
         #super(Image_BF, self).__init__(*args,**kwargs)
         super(Image_BF, self).__init__(**kwargs)
-
-    def Matrix_Hash(self,Item):
+        self.HashBitLocations = self.RGB_Hash
+    def RGB_Hash(self,Item):
         BitLocations = []
 
         for Hash in self.HashGuides:
@@ -325,60 +380,36 @@ class _RGB_Image(_BloomFilter,object):
         #EReference - Expenential reference ~number of referenced points per image
         return BitLocations
 
-class RGB_Image_BF(_BloomFilter,object):
+
+
+if(True):
+    print("GS_Image Tests")
+    TestBF = GS_Image()
+    print("Adding Item")
+    print(str(type(Image("25.jpg"))))
+    print(TestBF.Add(Image("25.jpg")))
+    print(TestBF.Add(Image("25.jpg")))
+    #TestBF.PrintAllItems()
+    #print(TestBF.Add("25.jpg"))
+
+
+class Full_Image_BF(_MD_BloomFilter,object):
     def __init__(self,*args, **kwargs):
-        kwargs["Dimentions"]       = 2
-        kwargs["Type"]             = type(0)
-        kwargs["HashGuides"]       = ["R","G","B","Intercept"]
-        kwargs["HashBitLocations"] = self.RGB_Hash
-        #super(Image_BF, self).__init__(*args,**kwargs)
-        super(Image_BF, self).__init__(**kwargs)
+
+        super(Full_Image_BF, self).__init__(**kwargs)
 
     def RGB_Hash(self,Item):
         print("it worked")
         #EReference - Expenential reference ~number of referenced points per image
         return 0
-
-class _MD_BloomFilter(object):
-    def __init__(self,*args, **kwargs):
-        RuntimeParameters = {
-                    'ExpectedEntries'  : 1000,
-                    'FalsePositiveRate': 0.01,
-                    'Location'         : "",
-                    'HashGuides'       : ["int"],
-                    'HashBitLocations' : self.HashBitLocations,
-                    }
-
-        RuntimeParameters.update(kwargs)
-
-        self.Sources = {}
-        for Source in RuntimeParameters['Sources']:
-            self.Sources[Source]=_BloomFilter
-
-    def _Declare_RGB(self):
-        Parameters={}
-        Parameters["Dimentions"]       = 2
-        Parameters["Type"]             = type(0)
-        Parameters["HashGuides"]       = ["R","G","B","Intercept"]
-        Parameters["HashBitLocations"] = self.RGB_Hash
 if(False):
     print("_MD_BloomFilter Tests")
 
-class Full_Image_BF(_BloomFilter,object):
+
+class Video_MD_BloomFilter(_MD_BloomFilter,object):
     def __init__(self,*args, **kwargs):
-        kwargs["Dimentions"]       = 2
-        kwargs["Type"]             = type(0)
-        kwargs["HashGuides"]       = ["R","G","B","Intercept"]
-        kwargs["HashBitLocations"] = self.RGB_Hash
+        #kwargs[""] =
+        #kwargs[""]             = type(0)
+        #kwargs[""] = self.RGB_Hash
         #super(Image_BF, self).__init__(*args,**kwargs)
-        super(Image_BF, self).__init__(**kwargs)
-
-    def RGB_Hash(self,Item):
-        print("it worked")
-        #EReference - Expenential reference ~number of referenced points per image
-        return 0
-
-class Video_MD_BloomFilter(_MD_BloomFilter):
-    def __init__(self,Location,*args, **kwargs):
-
-        super(Video_MD_BloomFilter, self).__init__(,*args, **kwargs)
+        super(Video_MD_BloomFilter, self).__init__(*args, **kwargs)
